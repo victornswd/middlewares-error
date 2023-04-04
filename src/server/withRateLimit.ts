@@ -1,4 +1,4 @@
-import { middleware$, error$ } from "@prpc/solid";
+import { middleware$, error$, pipe$ } from "@prpc/solid";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
@@ -7,7 +7,7 @@ const ratelimit = new Ratelimit({
   limiter: Ratelimit.fixedWindow(20, "10 s"),
 });
 
-export const withRateLimit = middleware$(async ({ request$ }) => {
+const withRateLimitPartial = middleware$(async ({ request$ }) => {
   const ip = request$.headers.get("x-forwarded-for") ?? "127.0.0.1";
   const { success, pending, reset } = await ratelimit.limit(`mw_${ip}`);
   await pending;
@@ -19,3 +19,5 @@ export const withRateLimit = middleware$(async ({ request$ }) => {
     );
   }
 });
+
+export const withRateLimit = pipe$(withRateLimitPartial, (ctx) => ctx);
